@@ -218,3 +218,24 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ROS 2 workspace
+build/
+install/
+log/
+
+# ROS bags
+*.bag
+*.db3
+*.mcap
+rosbag2_*/
+
+# LaTeX
+*.aux
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg

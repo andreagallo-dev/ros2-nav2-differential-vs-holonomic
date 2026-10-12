@@ -1,0 +1,4 @@
+Packages removed from the original workspaces before building:
+- tiago_ws/src/play_motion2                                      (from TiagoWorkspace)
+- ros2_ws/src/ros-controls/ros2_controllers/rqt_joint_trajectory_controller
+To reproduce, delete these folders or add an empty file named COLCON_IGNORE inside each of them.

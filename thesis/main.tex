@@ -1,0 +1,195 @@
+\documentclass[12pt, a4paper, twoside, openright]{report}
+\usepackage{emptypage}
+\raggedbottom
+
+
+\usepackage{pdfpages}
+
+% --- LINGUA E FONT ---
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx} % Imposta il font Times New Roman
+
+% --- MARGINI (Direttive Uni: 2.5 cm ovunque) ---
+\usepackage[margin=2.5cm]{geometry}
+
+% --- INTERLINEA (Direttive Uni: 1.5) ---
+\usepackage{setspace}
+\onehalfspacing
+
+% --- PACCHETTI GRAFICI E MATEMATICI ---
+\usepackage{graphicx} % Per inserire le immagini
+\usepackage{float}    % Per bloccare le immagini
+\usepackage{amsmath}  % Per le formule matematiche avanzate
+\usepackage{amssymb}
+
+% --- PACCHETTI PER TABELLA ---
+\usepackage{tabularx}
+\usepackage{booktabs}
+
+% --- PACCHETTI PER CODICE E COLORI ---
+\usepackage{xcolor}
+\usepackage{listings}
+
+% Definizione Colori
+\definecolor{backcolour}{rgb}{0.96, 0.96, 0.94} % Beige chiaro
+\definecolor{commentgreen}{rgb}{0.0, 0.6, 0.0}
+\definecolor{stringpurple}{rgb}{0.58, 0.0, 0.82}
+\definecolor{keywordblue}{rgb}{0.0, 0.0, 0.8}
+\definecolor{bashkeyword}{rgb}{0.0, 0.4, 0.5} 
+\definecolor{yamlkey}{rgb}{0.8, 0.1, 0.1}       % Rosso scuro per le chiavi YAML
+
+% Configurazione globale di base
+\lstset{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{commentgreen},
+    numberstyle=\tiny\color{gray},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=10pt,                  
+    frame=single,                    % Bordo attorno al codice
+    rulecolor=\color{lightgray},     % Colore del bordo (grigio chiaro)
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+% --- DEFINIZIONE CUSTOM PER YAML ---
+\lstdefinelanguage{yaml}{
+  keywords={true, false, null, y, n, True, False},
+  keywordstyle=\color{keywordblue}\bfseries,
+  comment=[l]{\#},
+  commentstyle=\color{commentgreen}\ttfamily,
+  stringstyle=\color{stringpurple}\ttfamily,
+  moredelim=**[l][\color{yamlkey}\bfseries]{:},  
+  morestring=[b]',
+  morestring=[b]"
+}
+
+% --- STILI SPECIFICI PER LINGUAGGIO ---
+\lstdefinestyle{mybash}{
+    language=bash,
+    keywordstyle=\color{bashkeyword}\bfseries,
+    stringstyle=\color{stringpurple},
+    %Comandi linux e ROS da colorare:
+    morekeywords={mkdir, cat, echo, export, exec, chmod, sed, ros2, until, grep, sleep, done}
+}
+
+\lstdefinestyle{myxml}{
+    language=XML,
+    keywordstyle=\color{keywordblue}\bfseries,
+    stringstyle=\color{stringpurple},
+    %Tag custom di ROS/Gazebo e XACRO:
+    morekeywords={plugin, ros, namespace, remapping, update_rate, xacro:if, xacro:include}
+}
+
+\lstdefinestyle{mypython}{
+    language=Python,
+    keywordstyle=\color{keywordblue}\bfseries,
+    stringstyle=\color{stringpurple},
+    % Eventuali classi custom python da evidenziare
+    morekeywords={rclpy, Node, ExecuteProcess, LaunchDescription, DeclareLaunchArgument}
+}
+
+\lstdefinestyle{myyaml}{
+    language=yaml
+}
+
+% --- SETUP BIBLIOGRAFIA ---
+\usepackage[backend=biber, style=ieee]{biblatex} 
+\addbibresource{Thesis Robotics.bib} 
+
+% --- SETUP LINK CLICCABILI  ---
+\usepackage[colorlinks=true, citecolor=black, linkcolor=black, urlcolor=blue]{hyperref}
+
+% --- SETUP IMMAGINI  ---
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric}
+
+% --- PER IMMAGINI IN ALTO  ---
+\makeatletter
+\setlength{\@fptop}{0pt}
+\makeatother
+
+\begin{document}
+
+% ==========================================
+% FRONTESPIZIO
+% ==========================================
+\pagenumbering{roman} 
+
+\includepdf[pages=1]{Frontespizio Tesi_compilato.pdf}
+\clearpage
+\thispagestyle{empty}
+\null
+\clearpage
+
+% ==========================================
+% ABSTRACT E INDICE
+% ==========================================
+% Numerazione romana per le pagine dell'indice
+
+\cleardoublepage
+\chapter*{Abstract}
+Autonomous Mobile Robots are increasingly deployed in complex indoor environments, raising the question of which kinematic drive---differential or holonomic---is best suited for autonomous navigation. Standard open-source frameworks such as ROS~2 Nav2, however, exhibit an inherent ``differential bias'': by heavily penalizing lateral motion, they force holonomic bases into sub-optimal, pseudo-differential behaviors. This thesis presents an equitable comparison between a differential drive (TIAGo PMB2) and a holonomic drive (TIAGo OmniBase) in ROS~2. To enable a fair benchmark, the Nav2 stack was profoundly reconfigured---tuning the local planner critics and kinematic constraints---to suppress this bias and unlock true omnidirectional motion. The platforms were evaluated in Gazebo across two pipelines: directed waypoint navigation under varying topological challenges, and autonomous frontier-based exploration with online SLAM. To prevent estimation noise from skewing the results, all spatial metrics were computed offline from absolute ground-truth poses. The results reveal a clear kinematic trade-off. The holonomic drive shows decisive planning robustness in confined spaces, achieving zero global-planning failures and negotiating sharp corners far faster through lateral strafing. Conversely, the differential drive proves faster and more efficient in open areas and wall-following, thanks to its circular footprint, but suffers severe planning fragility and frequent recoveries in cluttered passages. As the two bases are actuated by different simulation plugins, these differences are framed at the level of navigation strategy rather than physical execution. The findings yield concrete engineering guidelines, showing that the optimal choice is dictated by environmental density and operational constraints such as mobile manipulation.
+
+\cleardoublepage
+\chapter*{Sommario}
+I Robot Mobili Autonomi sono sempre più impiegati in ambienti indoor complessi, sollevando il problema di quale cinematica---differenziale o olonoma---sia la più adatta per la navigazione autonoma. Tuttavia, i framework open-source standard come ROS~2 Nav2 presentano un intrinseco ``bias differenziale'': penalizzando fortemente il moto laterale, costringono le basi olonome a comportamenti sub-ottimali. Questa tesi presenta un confronto equo tra una base differenziale (TIAGo PMB2) e una olonoma (TIAGo OmniBase) in ROS~2. Per un benchmark corretto, lo stack Nav2 è stato profondamente riconfigurato---modificando i critici del \textit{local planner} e i vincoli cinematici---per sopprimere tale bias e sbloccare il reale moto omnidirezionale. Le piattaforme sono state valutate in Gazebo su due scenari: navigazione a waypoint con sfide topologiche di varia difficoltà ed esplorazione autonoma \textit{frontier-based} con SLAM online. Per escludere il rumore di stima, tutte le metriche spaziali sono state calcolate offline dalla \textit{ground truth} assoluta. I risultati mostrano un chiaro \textit{trade-off}. La base olonoma garantisce una robustezza di pianificazione decisamente superiore negli spazi ristretti, azzerando i fallimenti del \textit{global planner} e superando le curve strette molto più rapidamente tramite il moto laterale. Al contrario, la base differenziale è più veloce ed efficiente in aree aperte e nel \textit{wall-following}, grazie all'ingombro circolare, ma mostra una forte fragilità di pianificazione e continue \textit{recovery} in ambienti congestionati. Poiché le due basi sono attuate da plugin di simulazione differenti, tali differenze vanno intese a livello di strategia di navigazione più che di esecuzione fisica. Lo studio fornisce linee guida pratiche, dimostrando che la scelta ottimale dipende dalla densità dell'ambiente e da vincoli operativi come la manipolazione mobile.
+
+
+
+\tableofcontents
+\cleardoublepage
+
+\pagenumbering{arabic} % Torna alla numerazione normale per le pagine dei capitoli
+
+
+
+% ==========================================
+% INSERIMENTO CAPITOLI
+% ==========================================
+\input{chapters/01_introduction.tex}
+\input{chapters/02_kinematic_models.tex}
+\input{chapters/03_system_architecture.tex}
+\input{chapters/04_experimental_results.tex}
+\input{chapters/05_conclusions.tex}
+
+% ==========================================
+% PAGINE VUOTE PER BELLEZZA E FIRME
+% ==========================================
+\clearpage
+\thispagestyle{empty}
+\null
+\clearpage
+\thispagestyle{empty}
+\null
+\clearpage
+
+% ==========================================
+% APPENDICE
+% ==========================================
+\appendix
+\input{appendices/appendix_a.tex}
+\input{appendices/appendix_b_results.tex}
+
+% ==========================================
+% BIBLIOGRAFIA
+% ==========================================
+\newpage
+\printbibliography[heading=bibintoc, title={References}]
+% ==========================================
+% PAGINA VUOTA PER BELLEZZA E FIRME
+% ==========================================
+\clearpage
+\thispagestyle{empty}
+\null
+\clearpage
+
+\end{document}
+

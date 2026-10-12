@@ -1,0 +1,62 @@
+%!TeX root = ../main.tex
+
+% ==========================================
+% CHAPTER 1: INTRODUCTION
+% ==========================================
+\chapter{Introduction}
+\label{ch:intro}
+
+\section{Context and Motivation}
+
+In recent years, the deployment of Autonomous Mobile Robots (AMRs) has expanded significantly beyond highly controlled industrial environments, such as factories and automated warehouses. Today, AMRs are increasingly integrated into complex, unstructured, and dynamic indoor settings, ranging from hospitals and retail stores to domestic environments \cite{siegwart2004introduction}. Unlike traditional industrial floors, domestic and service environments present unique navigational challenges: navigating through narrow doorways, avoiding unpredictable dynamic obstacles (such as humans and pets), and maintaining a stable sensor line-of-sight during complex manoeuvres. Navigating such spaces safely and efficiently imposes stringent requirements on both the physical manoeuvrability of the robotic platform and the robustness of its software control architecture.
+
+Historically, the differential drive kinematics has been the industry standard for indoor mobile robots due to its mechanical simplicity, reliability, and ease of control \cite{siegwart2004introduction}. However, as derived in Chapter 2, differential drive platforms are strictly bound by non-holonomic constraints. To achieve lateral displacements or navigate sharp corners, a non-holonomic robot must execute a sequence of forward translations and in-place rotations. In heavily constrained environments, these manoeuvres significantly increase the robot's dynamic footprint—or \textit{swept volume}—elevating the risk of collision and reducing the overall fluidity of the navigation. 
+
+To overcome these physical limitations, holonomic platforms, such as those equipped with Mecanum wheels, have been introduced. By granting full 3-degree-of-freedom (3-DOF) planar mobility, holonomic robots can perform instantaneous lateral translations (strafing) without altering their heading. This capability is particularly critical for domestic robots and mobile manipulators, which often need to maintain a continuous line-of-sight with a target or keep a manipulated payload steady while avoiding obstacles.
+
+Despite the hardware readiness of omnidirectional platforms, a critical gap remains in the software infrastructure. Modern open-source navigation frameworks, most notably the Navigation 2 (Nav2) stack within the Robot Operating System 2 (ROS 2), have been historically designed and optimized around differential and Ackermann kinematic models \cite{macenski_marathon_2020}. Consequently, deploying a holonomic base using default navigation algorithms often results in sub-optimal, "pseudo-differential" behaviors, where the system fails to exploit the available lateral degrees of freedom. 
+
+The motivation for this thesis stems from the necessity to bridge this gap between hardware capabilities and software limitations. A fair and scientifically rigorous comparison between differential and holonomic drives cannot be achieved out-of-the-box. It requires a profound architectural tuning of the local planning algorithms to actively suppress the differential bias and unlock true omnidirectional capabilities. Therefore, this work aims to systematically reconfigure the ROS 2 navigation stack for both paradigms, providing a standardized baseline to evaluate how the underlying kinematics influence exploration strategies, path execution, and overall operational efficiency in complex indoor scenarios.
+
+\section{State of the Art on Mobile Robot Locomotion}
+
+The scientific literature and industrial applications surrounding mobile robot locomotion are broadly polarized into two primary paradigms: non-holonomic (differential) and holonomic (omnidirectional) systems.
+
+From a mechanical standpoint, differential drive platforms dominate due to their reliability, simplicity, and power efficiency, though they suffer from limited manoeuvrability in cluttered environments \cite{pal_blog_omni_diff}. Conversely, platforms equipped with Mecanum wheels allow instantaneous translation in any planar direction, maximizing manoeuvrability at the cost of reduced energy efficiency and increased sensitivity to floor irregularities due to passive rollers \cite{taheri_kinematic_2015, reque_mechatronics_2021, yepez-figueroa_design_2025}.
+
+While the hardware differences are well documented, the algorithmic implications of deploying these kinematic models present a significant challenge. Autonomous navigation frameworks, such as ROS 2 Nav2 \cite{macenski_marathon_2020}, divide the navigation task into global path planning and local trajectory control. Historically, standard local planners—such as the Dynamic Window Approach (DWA)—were mathematically formulated around non-holonomic constraints. Consequently, these planners inherently exhibit a \textit{differential bias}: their objective cost functions heavily penalize trajectories where the robot's heading does not align with the direction of motion. When an omnidirectional robot is deployed using these default configurations, it often exhibits "pseudo-differential" behaviors, rotating unnecessarily rather than exploiting its lateral degrees of freedom.
+
+To address this limitation, recent literature has explored various approaches to holonomic local planning. Several studies have compared standard ROS planners, demonstrating that optimization-based algorithms like the Timed Elastic Band (TEB) often outperform DWA-based approaches on omnidirectional bases by explicitly handling kinematic constraints \cite{imamoglu2023comparison}. Furthermore, to fully leverage omnidirectional capabilities without being constrained by standard Nav2 heuristics, researchers frequently bypass standard software stacks. Advanced implementations increasingly rely on Nonlinear Model Predictive Control (NMPC) or custom non-linear optimization formulations, which design rotationally invariant cost functions to guarantee smooth, pure translational movements (\textit{crab walk}) in narrow spaces \cite{sun2022local}.
+
+Despite these advancements, a significant gap remains in the state of the art for industrial, out-of-the-box deployments. While custom MPC planners excel in specific scenarios, there is a lack of comprehensive benchmarking that evaluates how standard, widely adopted open-source frameworks like Nav2 can be systematically tuned to suppress the differential bias on holonomic hardware. This thesis positions itself within this gap. By utilizing the modular PAL Robotics TIAGo platform \cite{pal_tiago_base, pal_tiago_omnibase}, this study isolates the kinematic variables and provides a reproducible baseline to evaluate how standard Nav2 controllers can be reconfigured to bridge the gap between differential planning heuristics and true holonomic mobility.
+
+\section{Objectives and Contributions of the Thesis}
+
+The primary objective of this thesis is to conduct a comparative analysis of autonomous exploration and navigation strategies between a differential drive robot (TIAGo PMB2) and an omnidirectional robot (TIAGo OmniBase), operating within the ROS 2 Nav2 framework. 
+
+Rather than executing a purely theoretical kinematic analysis, this work focuses on the engineering challenge of deploying both systems in a realistic simulation environment, identifying the software bottlenecks, and tuning the navigation stack to allow a scientifically fair benchmark.
+
+The specific contributions of this thesis are:
+\begin{itemize}
+    \item \textbf{System Architecture Configuration and Troubleshooting:} The integration and debugging of the ROS 2 workspace for the TIAGo OmniBase, resolving underlying issues in the official simulator packages (e.g., missing TF frames for the odometry and plugin conflicts) to ensure the stability of the Gazebo simulation.
+    \item \textbf{Algorithmic Tuning of the Local Planner (DWB):} The critical reconfiguration of the DWB Local Planner's Critics. By actively suppressing the differential bias (such as the \textit{PathAlign} and \textit{GoalAlign} scores) and tuning velocity limits, the holonomic base was successfully forced into a pure translational motion (\textit{crab walk}), maximizing its kinematic advantage in narrow environments.
+    \item \textbf{Ground-Truth Based Evaluation:} The development of a robust offline analysis infrastructure. To guarantee an objective evaluation unaffected by odometry drift, the spatial tracking errors, the waypoint positioning errors, and the execution times were computed from absolute Ground Truth poses extracted directly from the Gazebo physics engine. Motion smoothness was quantified separately as the root mean-square of the commanded linear and angular accelerations, obtained by differentiating the velocity commands issued by the navigation stack.
+    \item \textbf{Comprehensive Benchmarking and Autonomous Exploration:} The design of a multi-tiered experimental setup. The platforms were first tested through directed waypoint navigation (using the \texttt{NavigateThroughPoses} action) across three specific topological challenges: a straight path, a 90-degree corner, and an obstacle course. Subsequently, both bases were evaluated in a realistic domestic environment using a custom robust frontier-based exploration algorithm. Originally developed during a prior internship, this node was heavily instrumented for this thesis to ensure deterministic and fair comparisons. It introduces advanced navigation heuristics—such as dynamic goal retraction from unknown boundaries, strict wall-clearance filtering, and dynamic goal blacklisting—to prevent planner failures and timeouts. All scenarios were repeated for 5 iterations per base to characterise run-to-run variability (reported as mean and standard deviation).
+    \item \textbf{Cross-Paradigm Empirical Findings:} A quantitative characterisation of the trade-offs between the two kinematics, shown to be consistent across both navigation pipelines. The holonomic base leverages lateral motion to track straight paths more closely and to negotiate sharp corners substantially faster---by strafing rather than rotating in place---at the cost of larger deviations from the planned path when cutting corners. More significantly, the differential base exhibits a recurring planning fragility around obstacles, manifesting as repeated global-planner failures, which the holonomic base does not; this same fragility reappears in the autonomous-exploration task, establishing it as a robustness result that is independent of the specific navigation paradigm.
+\end{itemize}
+
+\section{Thesis Outline}
+
+The remainder of this thesis is structured as follows:
+\begin{itemize}
+    \item \textbf{Chapter~\ref{Ch:Kinematic}} establishes the theoretical foundation, detailing the kinematic equations, mobility constraints, and probabilistic motion models for both the differential (PMB2) and omnidirectional (OmniBase) drives.
+    \item \textbf{Chapter~\ref{ch:architecture}} describes the system architecture and the ROS 2 Nav2 setup. It highlights the crucial software modifications, the resolution of simulation artifacts, and the parameter tuning required to enable fair omnidirectional navigation.
+    \item \textbf{Chapter~\ref{ch:results}} presents the experimental setup and the quantitative analysis of the results. It details the performance of both bases across the three waypoint-based scenarios and the autonomous exploration task, evaluating metrics such as trajectory tracking error, execution time, and motion fluidity.
+    \item \textbf{Chapter~\ref{ch:conclusions}} concludes the thesis by summarizing the main empirical findings and translating the experimental results into practical engineering guidelines. It provides clear recommendations on when to deploy a differential or a holonomic drive based on their respective strengths, weaknesses, and operational constraints, ultimately proposing directions for future research and developments.
+\end{itemize}
+
+
+%\clearpage
+%\thispagestyle{empty}
+%\null
+%\clearpage

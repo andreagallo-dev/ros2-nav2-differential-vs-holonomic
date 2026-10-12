@@ -1,0 +1,222 @@
+\chapter{Workarounds and Configuration Files}
+\label{app:troubleshooting}
+
+This appendix compiles the raw scripts, bash commands, and XML configurations developed to resolve infrastructural bottlenecks and ensure the reproducibility of the simulation setup discussed in Chapter~\ref{ch:architecture}.
+
+\section{Resolution of URDF Namespace Conflicts}
+To resolve the segmentation fault caused by the IMU plugin namespace collision during Gazebo initialization, the following \texttt{sed} command was used to programmatically rename the plugin in the main robot description file:
+\label{app:urdf_conflict}
+\vspace{0.3cm}
+
+\begin{lstlisting}[style=mybash]
+sed -i 's/name="base_imu"/name="tiago_base_imu"/' gazebo.urdf.xacro
+\end{lstlisting}
+
+
+\section{Gazebo Server Software Rendering Wrapper}
+To mitigate the severe framerate drop on AMD GPUs while ensuring the correct computation of the OmniBase LiDARs, the following bash wrapper was implemented to force software rendering exclusively on the \texttt{gzserver}:
+\label{app:gzserver_wrapper}
+\vspace{0.3cm}
+
+\begin{lstlisting}[style=mybash]
+mkdir -p ~/bin
+cat > ~/bin/gzserver << 'EOF'
+#!/bin/bash
+echo "### WRAPPER GZSERVER ACTIVE ###" >&2
+export LIBGL_ALWAYS_SOFTWARE=1
+exec /usr/bin/gzserver "$@"
+EOF
+chmod +x ~/bin/gzserver
+\end{lstlisting}
+
+
+\section{Ground Truth Extraction Plugin}
+To guarantee objective spatial error measurements, the following XML plugin was injected into the Gazebo \texttt{.world} files to extract the absolute Ground Truth pose of the robot at 50 Hz:
+\label{app:gt_plugin}
+\vspace{0.3cm}
+
+\begin{lstlisting}[style=myxml]
+<plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+  <ros>
+    <namespace>/gazebo</namespace>
+    <remapping>model_states:=model_states</remapping>
+  </ros>
+  <update_rate>50.0</update_rate>
+</plugin>
+\end{lstlisting}
+
+\section{Conditional Xacro Instantiation}
+To enable the dynamic loading of the correct hardware layouts based on the \texttt{base\_type} launch argument, the main \texttt{tiago.urdf.xacro} file was modified with the following conditional inclusions:
+\vspace{0.3cm}
+
+\begin{lstlisting}[style=myxml]
+<xacro:if value="${base_type == 'pmb2'}">
+  <xacro:include filename="$(find pmb2_description)/urdf/base/base_sensors.urdf.xacro" />
+</xacro:if>
+<xacro:if value="${base_type == 'omni_base'}">
+  <xacro:include filename="$(find omni_base_description)/urdf/base/base_sensors.urdf.xacro" />
+</xacro:if>
+\end{lstlisting}
+
+
+\section{Odometry TF Bridge Node}
+To resolve the missing Transform caused by the \texttt{gazebo\_ros\_planar\_move} plugin, the following Python node was developed to manually broadcast the \texttt{odom} $\rightarrow$ \texttt{base\_footprint} TF:
+\label{app:tf_bridge}
+\vspace{0.3cm}
+
+\begin{lstlisting}[style=mypython]
+def odom_callback(self, msg):
+    t = TransformStamped()
+    t.header.stamp = msg.header.stamp
+    t.header.frame_id = 'odom'
+    t.child_frame_id = 'base_footprint'
+    
+    t.transform.translation.x = msg.pose.pose.position.x
+    t.transform.translation.y = msg.pose.pose.position.y
+    t.transform.rotation = msg.pose.pose.orientation
+    
+    self.br.sendTransform(t)
+\end{lstlisting}
+
+
+\section{Deterministic Teleportation Loop}
+To ensure precise starting coordinates, the master launch file utilizes this bash polling loop to wait for Gazebo to expose the entity state service before executing the teleportation:
+\label{app:teleport}
+\vspace{0.3cm}
+
+\begin{lstlisting}[style=mybash]
+smart_wait_cmd = (
+    'until ros2 service list | grep -q "/gazebo/set_entity_state"; do '
+    'sleep 0.5; '
+    'done; '
+    f'ros2 service call /gazebo/set_entity_state gazebo_msgs/srv/SetEntityState "{goal_msg}"'
+)
+\end{lstlisting}
+
+\section{Navigation 2 Configuration Parameters}
+\label{app:nav2_params}
+
+The following snippets detail the critical parameter differences implemented in the Navigation 2 stack to accommodate the kinematic and sensory divergences between the differential PMB2 and the holonomic OmniBase.
+
+\subsection{AMCL Probabilistic Tuning}
+The OmniBase utilizes the \texttt{OmniMotionModel} and requires the explicit definition of the \texttt{alpha5} parameter to bound lateral variance, alongside the remapping of the primary laser topic.
+\vspace{0.3cm}
+
+\textbf{OmniBase AMCL Configuration:}
+\begin{lstlisting}[style=myyaml]
+amcl:
+  ros__parameters:
+    robot_model_type: "nav2_amcl::OmniMotionModel"
+    alpha1: 0.2
+    alpha2: 0.2
+    alpha3: 0.2
+    alpha4: 0.2
+    alpha5: 0.2
+    scan_topic: /scan_front_raw
+    # [...]
+\end{lstlisting}
+
+\clearpage
+\textbf{PMB2 AMCL Configuration:}
+\begin{lstlisting}[style=myyaml]
+amcl:
+  ros__parameters:
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+    alpha1: 0.2
+    alpha2: 0.2
+    alpha3: 0.2
+    alpha4: 0.2
+    # alpha5 is not evaluated in the differential model
+    scan_topic: /scan_raw
+    # [...]
+\end{lstlisting}
+
+\subsection{Velocity Smoother and Kinematic Constraints}
+The \texttt{velocity\_smoother} inherently enforces the physical mobility of the platforms. The OmniBase configuration actively unlocks the lateral velocity axis ($Y$), which is strictly clamped to zero in the differential setup.
+\vspace{0.3cm}
+
+
+\textbf{OmniBase Velocity Smoother:}
+\begin{lstlisting}[style=myyaml]
+velocity_smoother:
+  ros__parameters:
+    max_velocity: [1.0, 1.0, 1.0]     # [vx, vy, wz] unlocked lateral motion
+    min_velocity: [-1.0, -1.0, -1.0]  # vx at -1.0 allows BackUp recovery
+    max_accel:  [2.5, 2.5, 3.2]
+    max_decel:  [-2.5, -2.5, -3.2]
+    # [...]
+\end{lstlisting}
+
+
+\textbf{PMB2 Velocity Smoother:}
+\begin{lstlisting}[style=myyaml]
+velocity_smoother:
+  ros__parameters:
+    max_velocity: [1.0, 0.0, 1.0]     # vy clamped to 0.0 (non-holonomic)
+    min_velocity: [-1.0, 0.0, -1.0]
+    max_accel:  [2.5, 2.5, 3.2]       # lateral acceleration kept identical
+    max_decel:  [-2.5, -2.5, -3.2]
+    # [...]
+\end{lstlisting}
+
+\clearpage
+\subsection{Costmap Footprint Representation}
+The geometric footprint definition diverges from a rotational-invariant radius to a specific planar polygon.
+\vspace{0.3cm}
+
+\textbf{OmniBase Local Costmap:}
+\begin{lstlisting}[style=myyaml]
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      footprint: "[[0.35, 0.24], [-0.35, 0.24], [-0.35, -0.24], [0.35, -0.24]]"
+      # [...]
+\end{lstlisting}
+
+\textbf{PMB2 Local Costmap:}
+\begin{lstlisting}[style=myyaml]
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      robot_radius: 0.275
+      # [...]
+\end{lstlisting}
+
+\subsection{DWB Local Planner Critics and Tuning}
+\label{app:dwb_tuning}
+
+The local planner was fundamentally retuned to suppress the differential bias for the holonomic base. The OmniBase implementation zeroes out alignment critics, introduces \texttt{Twirling} to prevent arbitrary rotation during strafing, and replaces the circular \texttt{BaseObstacle} with the \texttt{ObstacleFootprint} critic.
+\vspace{0.3cm}
+
+
+\textbf{OmniBase DWB Local Planner Configuration:}
+\begin{lstlisting}[style=myyaml]
+FollowPath:
+  plugin: "dwb_core::DWBLocalPlanner"
+  # [...]
+  critics: ["RotateToGoal", "Oscillation", "ObstacleFootprint", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "Twirling"]
+  ObstacleFootprint.scale: 0.5
+  PathAlign.scale: 0.0
+  GoalAlign.scale: 0.0
+  PathDist.scale: 64.0
+  GoalDist.scale: 24.0
+  RotateToGoal.scale: 32.0
+  Twirling.scale: 20.0
+\end{lstlisting}
+
+\clearpage
+\vspace{0.3cm}
+\noindent
+\textbf{PMB2 DWB Local Planner Configuration:}
+\begin{lstlisting}[style=myyaml]
+FollowPath:
+  plugin: "dwb_core::DWBLocalPlanner"
+  # [...]
+  critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+  BaseObstacle.scale: 0.5
+  PathAlign.scale: 32.0
+  GoalAlign.scale: 24.0
+  PathDist.scale: 64.0
+  GoalDist.scale: 24.0
+  RotateToGoal.scale: 32.0
+\end{lstlisting}

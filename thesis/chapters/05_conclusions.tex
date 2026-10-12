@@ -1,0 +1,117 @@
+%!TeX root = ../main.tex
+
+% ==========================================
+% CHAPTER 5: CONCLUSIONS
+% ==========================================
+\chapter{Conclusions}
+\label{ch:conclusions}
+
+The preceding chapters built this comparison from the ground up. Chapter~\ref{ch:intro} motivated the
+problem---the gap between the maturity of holonomic hardware and navigation stacks still centred
+on differential kinematics---and set out the objectives and contributions of the work.
+Chapter~\ref{Ch:Kinematic} laid the theoretical foundation, deriving the kinematic and probabilistic motion models of both bases. Chapter~\ref{ch:architecture} detailed the extensive systems-engineering effort that turned a differential-oriented stack into a fair testbed for both platforms, and Chapter~\ref{ch:results} reported the experimental comparison across the two campaigns. This final chapter draws these threads together: Section~\ref{sec:conclusions_summary} recalls what was done and achieved, Section~\ref{sec:conclusions_final} interprets the results together with the limitations that qualify them, and Section~\ref{sec:conclusions_future} outlines directions for future work.
+
+\section{Summary of the Work}
+\label{sec:conclusions_summary}
+
+This thesis addressed how the choice of mobile base influences autonomous navigation on the TIAGo platform, comparing a differential-drive base (PMB2) with a holonomic four-wheel mecanum base (OmniBase) under an otherwise identical software stack based on ROS~2, the Nav2 navigation framework, \texttt{slam\_toolbox}, and Gazebo Classic. The study began from a theoretical foundation: Chapter~\ref{Ch:Kinematic} derived the direct and inverse kinematics of both bases and formalised the essential distinction between them---the non-holonomic velocity constraints of the differential drive (Section~\ref{subsec:non holonomic constr}) against the full planar mobility of the mecanum configuration (Section~\ref{subsec:holonomic_mobility})---and complemented this with the probabilistic odometry-motion models (Section~\ref{sec:probabilistic_motion_models}) that characterise the localisation uncertainty of each drive and motivate the distinct AMCL motion models later adopted for the two platforms.
+
+A substantial part of the work was the systems-engineering effort required to turn a manufacturer stack tailored for differential drive into a fair and reproducible testbed for both platforms, documented in Chapter~\ref{ch:architecture}. This meant resolving low-level simulation and physics-engine obstacles---the URDF namespace conflicts that crashed Gazebo on start-up and the GPU rendering artifacts that corrupted the OmniBase LiDAR readings (Section~\ref{sec:ws setup})---and building a deterministic
+launch architecture that propagates the correct kinematic profile, reconstructs the \texttt{odom}$\rightarrow$\texttt{base\_footprint} transform missing from the holonomic base, and guarantees repeatable initial conditions (Section~\ref{sec:launch arch}). On top of this infrastructure, the Nav2 stack was reconfigured and tuned for each kinematic model (Section~\ref{sec:nav2_tuning}): the AMCL motion model and sensory topics, the costmap footprint and velocity constraints, and---most importantly for the comparison---the DWB local-planner critics, where the differential bias was deliberately suppressed by zeroing the alignment critics (PathAlign and GoalAlign) and introducing the Twirling critic, so that the holonomic base could express genuine omnidirectional motion rather than a pseudo-differential imitation of it (Section~\ref{subsec:dwb_tuning}).
+
+With this equitable baseline in place, the comparison was carried out through two complementary campaigns, reported in Chapter~\ref{ch:results}. The first evaluated \emph{waypoint navigation} on a previously mapped environment along three paths of increasing difficulty---a straight corridor (Section~\ref{subsec:res-hallway}), a sharp right-angle turn (Section~\ref{subsec:res-angle}), and a cluttered obstacle course (Section~\ref{subsec:res-obstacles})---each executed five times per base. The second evaluated \emph{frontier-based autonomous exploration} of an initially unknown apartment with SLAM running online (Section~\ref{sec:expl-results}), again over five runs per base. Both rested on a common measurement protocol (Section~\ref{sec:eval-metrics}): every metric was computed over the active phase of each run from the Gazebo ground-truth pose; path-tracking error was measured against the active Nav2 global plan rather than an idealised straight line; and the recovery and planning-failure counters were reconstructed directly from the recorded rosbags, giving a single consistent source of robustness data across the two pipelines.
+
+\section{Final Considerations}
+\label{sec:conclusions_final}
+
+The two campaigns do not crown one base as globally better; they trace a trade-off between the
+manoeuvrability that holonomy provides and the fidelity with which each base follows the planned
+path. The holonomic base tracked the plan more closely on the straight corridor
+(Section~\ref{subsec:res-hallway}) and the cluttered obstacle course
+(Section~\ref{subsec:res-obstacles}), where it can correct laterally, but at the sharp corner
+(Section~\ref{subsec:res-angle}) it was about three times faster by cutting across diagonally and,
+for that very reason, departed the most from the plan; the differential base, forced to rotate in
+place, was slower and rotationally harsher yet stayed faithful to the route. 
+In exploration the ranking on completion time flipped---but not because either base is faster in
+absolute terms, since both are capped at the same 1~m/s top speed. Frontier exploration repeatedly
+forces tight, U-shaped wall-following turns (Section~\ref{sec:expl-results}), and negotiating such
+a hairpin rewards a circular footprint and a smooth, parabola-like arc through the bend---precisely
+the differential base's profile, which threads these turns fluidly. The holonomic base struggles
+for the opposite reasons: its rectangular footprint is cumbersome in the confined curve, and its
+holonomy-aware tuning (Section~\ref{subsec:dwb_tuning}) holds a fixed heading instead of arcing
+through the turn, denying it that parabolic trajectory---so it labours through every U-turn around a wall and
+takes markedly longer to map the same apartment. This is the mirror image of the sharp corner,
+where that same heading-holding, strafing behaviour had been an advantage.
+The clearest and most consistent finding, however, was the planning fragility of
+the differential base in constrained space. It surfaced in both pipelines
+independently---global-planning failures around obstacles and around freshly revealed frontiers, a
+few percent of its planning attempts, against essentially none for the holonomic base---and it
+reflects a simple mechanism: a base that cannot translate sideways more often ends up in poses
+from which the planner cannot immediately recover.
+
+These findings translate into the practical engineering guidelines promised in the introduction
+(Chapter~\ref{ch:intro}), and they point to applications in which the choice of drive is not a
+matter of preference but of feasibility. The holonomic base becomes necessary, rather than merely
+convenient, whenever the base orientation is itself a task constraint or the workspace is too tight
+to turn in. Mobile manipulation is the sharpest case: a robot restocking pharmacy or supermarket
+shelves, or servicing a row of machines on a production line, must travel along the working face
+while keeping its arm square to the target; a differential base would have to rotate to reposition,
+breaking that alignment and sweeping a volume the aisle cannot spare, whereas the holonomic base
+simply strafes into place. The same necessity governs very-narrow-aisle storage, where racks are
+packed to maximise density and there is no room for a differential robot to rotate toward a shelf,
+and reliable last-metres delivery through crowded, human-shared indoor space such as hospital wards
+and busy service floors, where the differential base's recurring planning failures around
+obstacles---observed here across both pipelines---would surface as frequent stalls and recoveries
+exactly where predictable flow matters most. In each of these, the lateral motion, steady heading,
+and near-absent planning failures seen on the obstacle course and the sharp corner are what separate
+a task that runs from one that does not.
+
+The differential base is the correct choice for the opposite regime: large, mostly open areas where
+the route is simple, manoeuvring is rare, and cost, endurance, and mechanical simplicity dominate.
+Robotic floor scrubbers cleaning airport concourses or warehouse floors, autonomous
+mowers on parks and sports fields, and tote or pallet shuttles running long, wide, straight
+aisles all fit a profile of simple, repetitive routes with little tight manoeuvring: here
+holonomy offers nothing to exploit, and the mecanum drive's higher cost, lower energy
+efficiency, and greater sensitivity to floor irregularities would be paid for no benefit.
+The boundary is just as clear in reverse: drive
+such a vehicle into congested, cluttered aisles and it enters precisely the regime where its
+planning fragility begins to bite, which is the point at which a holonomic drive earns back its
+added complexity. The rule that emerges is concrete---choose the holonomic drive where space is
+tight or the load and heading must stay fixed in motion, and the differential drive where open
+ground must be covered quickly, cheaply, and over long duty cycles.
+
+\section{Future Developments}
+\label{sec:conclusions_future}
+
+The most important next step is to reproduce this comparison on the physical robots. Because the
+two bases were driven in simulation by different plugins---the central limitation discussed in
+Section~\ref{subsec:m-fidelity}---only real hardware can confirm whether the holonomic base's
+near-perfect command tracking survives genuine mecanum-wheel slip and actuation delay, and whether
+the differential base's planning fragility persists under real localisation noise. A staged
+validation is advisable: first in a controlled laboratory, reproducing the three waypoint paths and
+a mapped exploration run so that the measurements can be compared directly against the simulated
+ones; then in the real settings identified above---hospital corridors, shelf-restocking and other
+mobile-manipulation stations, narrow-aisle storage, and open-floor coverage---where uncontrolled
+clutter, dynamic obstacles, and real floor surfaces subject the two kinematics to representative
+stress.
+
+A complementary study would run the mirror of the methodology adopted here. This thesis took a
+navigation stack historically built around differential kinematics and reconfigured it to unlock
+holonomic motion; the converse would start from a stack natively
+designed and tuned for omnidirectional control and progressively constrain it down to differential
+behaviour. Serving as a counter-proof, it would reveal whether the differences observed---above all
+the differential base's planning fragility---are genuinely intrinsic to the kinematics or partly an
+artifact of the shared baseline having departed from a differential-oriented configuration.
+Reproducing the same asymmetry from the opposite starting point would considerably strengthen the
+generality of the conclusions.
+
+Several further directions follow naturally. The common controller used throughout was DWB, a
+differential-legacy local planner; testing kinematically-aware alternatives---such as lattice-based
+global planners or optimisation-based local controllers like TEB or Model Predictive Path Integral (MPPI)---would show whether the
+differential base's planning failures are specific to this planner, and could also relieve the
+holonomic base's difficulty in the tight U-turns encountered during exploration. Introducing
+dynamic obstacles would test the holonomic base's lateral evasion in the crowded, human-shared
+spaces that motivated this work, while measuring real energy consumption on hardware would finally
+quantify the efficiency cost of the mecanum drive that simulation could not capture, closing the
+loop on the cost--benefit trade-off behind the deployment guidelines.
+

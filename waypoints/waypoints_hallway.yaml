@@ -1,0 +1,5 @@
+# waypoints_A_rettilineo.yaml
+# Scenario A: Traiettoria rettilinea perfetta lungo l'asse Y (verso il basso).
+waypoints:
+  - {x: 1.245, y: 1.620, yaw: -1.5708}    # Punto 0 (Start / Spawn Point)
+  - {x: 1.245, y: -11.377, yaw: -1.5708}  # Punto Finale (Goal)

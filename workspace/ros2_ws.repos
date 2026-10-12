@@ -1,0 +1,37 @@
+repositories:
+  ros-controls/control_msgs:
+    type: git
+    url: https://github.com/ros-controls/control_msgs.git
+    version: 0e130632ab83cf11d5aaf7ded616b7fed8ac1720
+  ros-controls/control_toolbox:
+    type: git
+    url: https://github.com/ros-controls/control_toolbox.git
+    version: 35135989f129bdd74398d5aecc58aa87519b0916
+  ros-controls/gazebo_ros2_control:
+    type: git
+    url: https://github.com/ros-controls/gazebo_ros2_control.git
+    version: 2491886c57644d69450e84abafa62f595442c36a
+  ros-controls/gz_ros2_control:
+    type: git
+    url: https://github.com/ros-controls/gz_ros2_control.git
+    version: 94ec5ab0cb5131afc69b766958b2f320a58ae57b
+  ros-controls/kinematics_interface:
+    type: git
+    url: https://github.com/ros-controls/kinematics_interface.git
+    version: 87e17b4bac86d7fd71f7f959cd4090bf8fb3fe07
+  ros-controls/realtime_tools:
+    type: git
+    url: https://github.com/ros-controls/realtime_tools.git
+    version: 0ce9f77d1cf693a5340a2a986a461a09a0f04514
+  ros-controls/ros2_control:
+    type: git
+    url: https://github.com/ros-controls/ros2_control.git
+    version: e8d4a6e89105e57c13a61a65628368cc7cea4972
+  ros-controls/ros2_control_demos:
+    type: git
+    url: https://github.com/ros-controls/ros2_control_demos.git
+    version: 7d63cce58f84ba210f4d4fa03f0cbea9a19a6a46
+  ros-controls/ros2_controllers:
+    type: git
+    url: https://github.com/ros-controls/ros2_controllers.git
+    version: deeb9d0043f41c19631a109b6835fca83c340359

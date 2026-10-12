@@ -1,0 +1,25 @@
+repositories:
+  src:
+    type: git
+    url: https://github.com/ljuba1996/TiagoWorkspace.git
+    version: 3928817c8842720c08dbf91dd83dc05448390a10
+  src/omni_base_navigation:
+    type: git
+    url: https://github.com/pal-robotics/omni_base_navigation.git
+    version: 861d1944db33d570c3593e529976b2f57681a99d
+  src/omni_base_robot:
+    type: git
+    url: https://github.com/pal-robotics/omni_base_robot.git
+    version: 925c034064c6823cf3d23f959b4b56f2f100d2af
+  src/omni_base_simulation:
+    type: git
+    url: https://github.com/pal-robotics/omni_base_simulation.git
+    version: 77248acbc811d9f5f7adc4e88e95e1f60d7bf883
+  src/pal_urdf_utils:
+    type: git
+    url: https://github.com/pal-robotics/pal_urdf_utils.git
+    version: 0c732ac5699f777754740bfec46cc618873766fe
+  src/pymoveit2:
+    type: git
+    url: https://github.com/AndrejOrsula/pymoveit2.git
+    version: 2d684e2a68ec3ce937f1c3c3321ff5ba72034fd8
