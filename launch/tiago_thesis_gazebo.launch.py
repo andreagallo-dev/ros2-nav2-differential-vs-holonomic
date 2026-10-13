@@ -78,7 +78,7 @@ def generate_launch_description():
         output='screen'
     )
 
-    odom_tf_script_path = os.path.expanduser('~/Documents/Thesis/WS/tiago_ws_src/odom_tf_publisher.py')
+    odom_tf_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'scripts', 'tools', 'odom_tf_publisher.py')
     odom_tf_bridge_cmd = ExecuteProcess(
         cmd=['python3', odom_tf_script_path, '--ros-args', '-p', 'use_sim_time:=true'],
         condition=LaunchConfigurationEquals('base_type', 'omni_base'),
