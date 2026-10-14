@@ -19,9 +19,11 @@
 
 ---
 
-Code, data and LaTeX source of my thesis in Automation Engineering at the **University of Bologna** (supervisor: Prof. Alessio Caporali).
+Code, data and LaTeX source of my **Bachelor's thesis** (*Laurea in Ingegneria dell'Automazione*, DEI, University of Bologna, July 2026), supervised by Prof. Alessio Caporali.
 
 The thesis compares two PAL Robotics TIAGo mobile bases under the **same Nav2 stack**, in simulation, on two tasks: **waypoint navigation** and **autonomous frontier-based exploration**.
+
+Out of the box, Nav2 has a **differential bias**: its default local-planner critics and kinematic limits penalize lateral motion, which pushes a holonomic base into pseudo-differential behavior. To make the benchmark fair, the Nav2 configuration of the OmniBase was reconfigured (DWB critics and kinematic constraints) so that it can actually exploit omnidirectional motion. All spatial metrics are computed offline from Gazebo ground-truth poses, so localization noise does not affect the comparison.
 
 | | 🔵 PMB2 | 🟠 OmniBase |
 |---|---|---|
@@ -97,7 +99,7 @@ Full tables, all figures and the discussion are in the [thesis](thesis/thesis.pd
 ## ⚠️ Methodological caveats
 
 > [!IMPORTANT]
-> **Actuation fidelity is asymmetric.** The OmniBase is moved by the idealized `gazebo_ros_planar_move` plugin, which imposes `vx, vy, wz` directly on the body (no slip, no wheel dynamics), while the PMB2 uses `ros2_control`. Part of the OmniBase advantage may therefore be optimistic with respect to a real Mecanum platform.
+> **Actuation fidelity is asymmetric.** The OmniBase is moved by the idealized `gazebo_ros_planar_move` plugin, which imposes `vx, vy, wz` directly on the body (no slip, no wheel dynamics), while the PMB2 uses `ros2_control`. Part of the OmniBase advantage may therefore be optimistic with respect to a real Mecanum platform. For this reason the thesis frames the differences at the level of **navigation strategy**, not physical execution.
 
 - **Wheel data are reconstructed.** On the PMB2 the wheel velocities are `NaN` in simulation (a known `ros2_control` limitation) and are derived numerically from positions. On the OmniBase the wheels are reconstructed with inverse Mecanum kinematics from `cmd_vel` (ideal, no slip).
 - **Simulation is not deterministic.** Gazebo, `slam_toolbox` and Nav2 produce different runs even with identical settings, which is why each condition is repeated 5 times.
@@ -149,8 +151,8 @@ source /opt/ros/humble/setup.bash
 Underlay (`ros2_control` stack, pinned commits):
 
 ```bash
-mkdir -p ~/ros2_ws
-vcs import ~/ros2_ws < $THESIS_REPO/workspace/ros2_ws.repos
+mkdir -p ~/ros2_ws/src
+vcs import ~/ros2_ws/src < $THESIS_REPO/workspace/ros2_ws.repos
 rm -rf ~/ros2_ws/src/ros-controls/ros2_controllers/rqt_joint_trajectory_controller
 cd ~/ros2_ws && rosdep install --from-paths src --ignore-src -r -y && colcon build --symlink-install
 source ~/ros2_ws/install/setup.bash
@@ -168,7 +170,7 @@ cd ~/tiago_ws && rosdep install --from-paths src --ignore-src -r -y && colcon bu
 source ~/tiago_ws/install/setup.bash
 ```
 
-`pal_urdf_utils` is removed because the snapshot only contains a partial copy: the complete package is cloned at the pinned commit by `vcs import`. `play_motion2` is removed as listed in `workspace/REMOVED.txt`. The paths in the `.repos` files are relative to the workspace root, which is why `vcs import` targets `~/ros2_ws` and `~/tiago_ws`, not their `src` folders.
+`pal_urdf_utils` is removed because the snapshot only contains a partial copy: the complete package is cloned at the pinned commit by `vcs import`. `play_motion2` is removed as listed in `workspace/REMOVED.txt`. In `tiago_ws.repos` the paths start with `src/` (the TiagoWorkspace snapshot is itself cloned as `src`), so that file is imported into `~/tiago_ws`. In `ros2_ws.repos` the paths start with `ros-controls/`, so it is imported into `~/ros2_ws/src`.
 
 </details>
 
@@ -266,6 +268,7 @@ python3 analyze_exploration.py --pmb2-run-dirs logs_explore/pmb2_expl_rep* --omn
 ```bibtex
 @thesis{gallo2026navigation,
   author = {Andrea Gallo},
+  type   = {Bachelor's thesis},
   title  = {Autonomous Navigation Strategies for Mobile Robots in {ROS} 2: A Comparative Study of Differential and Holonomic Drives},
   school = {University of Bologna},
   year   = {2026}
